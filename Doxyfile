@@ -1,0 +1,14 @@
+# Doxyfile for kmc-calc
+PROJECT_NAME           = "kmc-calc"
+PROJECT_NUMBER         = "1.0.0"
+PROJECT_BRIEF          = "A C99 project following BARR-C style guidelines"
+OUTPUT_DIRECTORY       = docs
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_STATIC         = YES
+INPUT                  = src include
+RECURSIVE              = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HAVE_DOT               = YES
+UML_LOOK               = YES
