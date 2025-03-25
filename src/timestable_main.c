@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <getopt.h>
 #include <errno.h>
 #include <limits.h>
 #include "table_operations.h"
@@ -31,11 +32,11 @@ static void print_usage(const char *program_name)
 {
     printf("Usage: %s [options]\n", program_name);
     printf("Options:\n");
-    printf("  -h           Display output in hexadecimal format\n");
+    printf("  -x           Display output in hexadecimal format\n");
     printf("  -o           Display output in octal format\n");
     printf("  -m <min>     Minimum value (default: 1, cannot be less than 0)\n");
     printf("  -M <max>     Maximum value (default: 10, cannot exceed %d)\n", MAX_TABLE_SIZE);
-    printf("  -?           Display this help message\n");
+    printf("  -h           Display this help message\n");
 }
 
 /**
@@ -89,11 +90,11 @@ int main(int argc, char *argv[])
     int temp_value;
 
     /* Parse command line options */
-    while ((option = getopt(argc, argv, "hom:M:?")) != -1)
+    while ((option = getopt(argc, argv, "xom:M:h")) != -1)
     {
         switch (option)
         {
-            case 'h':
+            case 'x':
                 format = FORMAT_HEX;
                 break;
 
@@ -102,7 +103,7 @@ int main(int argc, char *argv[])
                 break;
 
             case 'm':
-                if (!parse_integer(optarg, &temp_value, 0, INT_MAX))
+                if (!parse_integer(optarg, &temp_value, 0, INT_MAX)) //ignore
                 {
                     fprintf(stderr, "Error: Invalid minimum value\n");
                     goto error_exit;
@@ -120,7 +121,7 @@ int main(int argc, char *argv[])
                 max_value = temp_value;
                 break;
 
-            case '?':
+            case 'h':
                 print_usage(argv[0]);
                 return EXIT_SUCCESS;
 
@@ -141,10 +142,10 @@ int main(int argc, char *argv[])
     print_table(min_value, max_value, multiply, MULT_TABLE_TITLE, format);
 
     /* Print division table */
-    print_table(min_value, max_value, divide, DIV_TABLE_TITLE, format);
+    // print_table(min_value, max_value, divide, DIV_TABLE_TITLE, format);
 
     /* Print power table */
-    print_table(min_value, max_value, power, POWER_TABLE_TITLE, format);
+    // print_table(min_value, max_value, power, POWER_TABLE_TITLE, format);
 
     return EXIT_SUCCESS;
 

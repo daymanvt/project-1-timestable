@@ -1,26 +1,66 @@
-### CHANGE ME ###
+### --------------------------------------------------------------------- ###
+### PROJECT CONFIGURATION (CHANGE ME)									  ###
+### --------------------------------------------------------------------- ###
 PROJECT := timestable
 ENTRY := $(PROJECT)_main.c
 VERSION := 1.0.0
 
-### ------------  DO NOT CHANGE BELOW ------------ ###
 
-# START - Makefile configuration
+### --------------------------------------------------------------------- ###
+### SHELL CONFIGURATION (DO NOT CHANGE)								      ###
+### --------------------------------------------------------------------- ###
 SHELL := bash
 .ONESHELL:
 .SHELLFLAGS := -eu -o pipefail -c
 .DELETE_ON_ERROR:
 MAKEFLAGS += --warn-undefined-variables
 MAKEFLAGS += --no-builtin-rules
-# END - Makefile configuration
 
-# Compiler and flags
-CC := gcc
-CFLAGS := -Wall -Wextra -Wpedantic -Waggregate-return -Wwrite-strings -Wvla -Wfloat-equal
-CFLAGS += -Wmissing-prototypes -Wstrict-prototypes -Wold-style-definition
-CFLAGS += -Wformat=2 -Wconversion -Wdouble-promotion -Wfloat-equal
-CFLAGS += -fstack-protector-all
+
+### --------------------------------------------------------------------- ###
+### COMPILER AND LINKER FLAGS 											  ###
+### --------------------------------------------------------------------- ###
+
+# Cross compilation support
+CROSS_COMPILE ?=
+CC := $(CROSS_COMPILE)gcc
+AR := $(CROSS_COMPILE)ar
+RANLIB := $(CROSS_COMPILE)ranlib
+
+# Warning flag configurations
+WARNINGS_BASIC := -Wall -Wextra -Wpedantic
+WARNINGS_EXTRA := $(WARNINGS_BASIC) -Waggregate-return -Wcast-align -Wcast-qual \
+                 -Wdisabled-optimization -Wdouble-promotion -Wfloat-equal -Wformat=2 \
+                 -Winit-self -Wlogical-op -Wmissing-include-dirs -Wredundant-decls \
+                 -Wshadow -Wstrict-overflow=5 -Wundef -Wno-unused
+WARNINGS_HARDCORE := $(WARNINGS_EXTRA) -Wconversion -Wsign-conversion -Wpadded \
+                    -Wswitch-enum -Wwrite-strings -Wvla
+
+# Default to basic warnings
+WARNINGS ?= basic
+ifeq ($(WARNINGS),extra)
+    CFLAGS += $(WARNINGS_EXTRA)
+else ifeq ($(WARNINGS),hardcore)
+    CFLAGS += $(WARNINGS_HARDCORE)
+else
+    CFLAGS += $(WARNINGS_BASIC)
+endif
+
+# Build type configurations
+BUILD_TYPE ?= debug
+ifeq ($(BUILD_TYPE),release)
+    CFLAGS += -O2 -DNDEBUG
+else ifeq ($(BUILD_TYPE),size)
+    CFLAGS += -Os -DNDEBUG
+else ifeq ($(BUILD_TYPE),fast)
+    CFLAGS += -Ofast -DNDEBUG
+else
+    CFLAGS += -g3 -O0 -DDEBUG
+endif
+
+# Common compiler flags
 CFLAGS += -std=c99 -D_DEFAULT_SOURCE
+CFLAGS += -fstack-protector-all
 INCLUDES := -Iinclude
 LDFLAGS :=
 
@@ -37,7 +77,11 @@ LDLIBS += -lm          # Math library (math.h)
 # LDLIBS += -ldb         # Berkeley DB library
 # LDLIBS += -lz          # Compression library (zlib)
 
-# Directories
+
+### --------------------------------------------------------------------- ###
+### DIRECTORIES AND SOURCE FILES										  ###
+### --------------------------------------------------------------------- ###
+
 SRC_DIR := src
 INC_DIR := include
 TEST_DIR := test
@@ -62,29 +106,30 @@ TEST_DEP_FILES := $(TEST_OBJ_FILES:.o=.d)
 PROG_ENTRY := $(OBJ_DIR)/$(basename $(ENTRY)).o
 COMMON_OBJ_FILES := $(filter-out $(PROG_ENTRY), $(OBJ_FILES))
 
-# Target executables
+### --------------------------------------------------------------------- ###
+### DEFAULT TARGETS 													  ###
+### --------------------------------------------------------------------- ###
+
 TARGET := $(BIN_DIR)/$(PROJECT)
 TEST_TARGET := $(BIN_DIR)/$(PROJECT)_test
 
-# Default target (debug build)
+# Default target
 .PHONY: all
-all: debug
+all: check-tools $(TARGET)
 
-# Debug target
-.PHONY: debug
-debug: CFLAGS += -g3 -O0
-debug: directories $(TARGET)
+### TOOL VERIFICATION ###
+REQUIRED_TOOLS := gcc make
+OPTIONAL_TOOLS := clang-format doxygen pdflatex gcov lcov
+.PHONY: check-tools
+check-tools:
+	$(foreach tool,$(REQUIRED_TOOLS),\
+		$(if $(shell which $(tool)),,$(error "$(tool) not found in PATH")))
+	$(foreach tool,$(OPTIONAL_TOOLS),\
+		$(if $(shell which $(tool)),,$(warning "$(tool) not found in PATH")))
 
-# Production target
-.PHONY: prod
-prod: CFLAGS += -O2 -DNDEBUG
-prod: directories $(TARGET)
-
-# Release target with version info
-.PHONY: release
-release: CFLAGS += -O2 -DNDEBUG -DVERSION=\"$(VERSION)\"
-release: clean directories $(TARGET)
-	@echo "Created release version $(VERSION)"
+### --------------------------------------------------------------------- ###
+### BUILD TARGETS 														  ###
+### --------------------------------------------------------------------- ###
 
 # Include dependency files if they exist
 -include $(DEP_FILES)
@@ -96,70 +141,149 @@ HEADER_STAMP := $(BUILD_DIR)/.header_timestamp
 
 # Check if headers have changed
 $(HEADER_STAMP): $(HEADERS)
-	@mkdir -p $(BUILD_DIR)
-	@touch $(HEADER_STAMP)
+	mkdir -p $(BUILD_DIR)
+	touch $(HEADER_STAMP)
 
 # Compile source files
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c $(HEADER_STAMP)
-	@mkdir -p $(OBJ_DIR)
+	mkdir -p $(OBJ_DIR)
 	@echo "Compiling $<"
 	$(CC) $(CFLAGS) $(INCLUDES) -MMD -MP -c $< -o $@
 
 # Compile test files
 $(TEST_OBJ_DIR)/%.o: $(TEST_DIR)/%.c $(HEADER_STAMP)
-	@mkdir -p $(TEST_OBJ_DIR)
+	mkdir -p $(TEST_OBJ_DIR)
 	@echo "Compiling $<"
 	$(CC) $(CFLAGS) $(INCLUDES) -I$(TEST_DIR) -MMD -MP -c $< -o $@
 
 # Link object files
 $(TARGET): $(OBJ_FILES)
-	@mkdir -p $(BIN_DIR)
+	mkdir -p $(BIN_DIR)
 	@echo "Linking $(TARGET)"
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@echo "Build complete: $(TARGET)"
 
 # Build and link test executable
 $(TEST_TARGET): $(TEST_OBJ_FILES) $(COMMON_OBJ_FILES)
-	@mkdir -p $(BIN_DIR)
+	mkdir -p $(BIN_DIR)
 	@echo "Linking $(TEST_TARGET)"
 	$(CC) $(CFLAGS) $(LDFLAGS) $^ $(LDLIBS) -o $@
 	@echo "Test build complete: $(TEST_TARGET)"
 
-# Create build directories
-.PHONY: directories
-directories:
-	@mkdir -p $(OBJ_DIR)
-	@mkdir -p $(TEST_OBJ_DIR)
-	@mkdir -p $(BIN_DIR)
-	@mkdir -p $(DOC_DIR)
-	@echo "Build directories created"
+
+### --------------------------------------------------------------------- ###
+### ADDITIONAL TARGETS 												      ###
+### --------------------------------------------------------------------- ###
 
 # Test target
 .PHONY: test
 test: CFLAGS += -g3 -O0 -DTEST
-test: directories $(TEST_TARGET)
+test: $(TEST_TARGET)
+	mkdir -p $(TEST_DIR)
 	@echo "Running tests..."
-	@$(TEST_TARGET)
+	$(TEST_TARGET)
+
+### CODE QUALITY ###
+.PHONY: format
+format:
+	@echo "Formatting source code..."
+	-clang-format -i $(SRC_FILES) $(HEADERS) $(TEST_SRC_FILES)
+	@echo "Formatting complete"
+
+### UTILITY TARGETS ###
+.PHONY: clean
+clean:
+	@echo "Cleaning build artifacts"
+	rm -rf $(BUILD_DIR) $(BIN_DIR)
+	@echo "Clean complete"
+
+.PHONY: distclean
+distclean: clean
+	@echo "Cleaning documentation"
+	rm -rf $(DOC_DIR)
+	@echo "All artifacts cleaned"
+
+.PHONY: rebuild
+rebuild: clean all
+
+### HELP ###
+.PHONY: help
+help:
+	@echo "Makefile for $(PROJECT) (v$(VERSION))"
+	@echo ""
+	@echo "Build Configuration:"
+	@echo "  BUILD_TYPE=debug|release|size|fast (default: debug)"
+	@echo "  WARNINGS=basic|extra|hardcore (default: basic)"
+	@echo "  CROSS_COMPILE=<prefix> (for cross-compilation)"
+	@echo ""
+	@echo "Basic Targets:"
+	@echo "  all          - Build the project (default)"
+	@echo "  clean        - Remove build artifacts"
+	@echo "  rebuild      - Clean and rebuild"
+	@echo "  format       - Format source code"
+	@echo "  check-tools  - Verify required tools are available"
+	@echo ""
+	@echo "Advanced Targets:"
+	@echo "  # coverage     - Run tests with coverage reporting (currently disabled)"
+	@echo "  # analyze      - Run static code analysis (currently disabled)"
+	@echo "  # asan         - Build with Address Sanitizer"
+	@echo "  # tsan         - Build with Thread Sanitizer"
+	@echo "  docs         - Generate documentation"
+	@echo "  install      - Install the application to /usr/local/bin"
+	@echo "  print        - Display project information"
+	@echo "Examples:"
+	@echo "  make                     - Debug build with basic warnings"
+	@echo "  make BUILD_TYPE=release  - Release build"
+	@echo "  make WARNINGS=extra      - Build with extra warnings"
+	@echo "  make format              - Format the code"
+	@echo ""
+	@echo "Use 'make V=1' for verbose output"
+
+# Print variables target (for debugging)
+.PHONY: print
+print:
+	$(info $$PROJECT is [${PROJECT}])
+	$(info $$VERSION is [${VERSION}])
+	$(info $$SRC_FILES is [${SRC_FILES}])
+	$(info $$OBJ_FILES is [${OBJ_FILES}])
+	$(info $$TEST_SRC_FILES is [${TEST_SRC_FILES}])
+	$(info $$TEST_OBJ_FILES is [${TEST_OBJ_FILES}])
+	$(info $$COMMON_OBJ_FILES is [${COMMON_OBJ_FILES}])
+	$(info $$CFLAGS is [${CFLAGS}])
+	$(info $$LDFLAGS is [${LDFLAGS}])
+	$(info $$LDLIBS is [${LDLIBS}])
+	$(info $$INCLUDES is [${INCLUDES}])
+	$(info $$TARGET is [${TARGET}])
+	$(info $$TEST_TARGET is [${TEST_TARGET}])
+
+# Support for verbose mode
+ifneq ($(V),1)
+.SILENT:
+endif
+
+### --------------------------------------------------------------------- ###
+### THESE WILL BE ENABLED AS THE NEED ARISES 							  ###
+### --------------------------------------------------------------------- ###
 
 # Coverage target
 # .PHONY: coverage
 # coverage: CFLAGS += -g3 -O0 -DTEST --coverage
 # coverage: LDFLAGS += --coverage
 # coverage: directories $(TEST_TARGET)
-# 	@mkdir -p $(COV_DIR)
+# 	mkdir -p $(COV_DIR)
 # 	@echo "Running tests with coverage..."
-# 	@$(TEST_TARGET)
+# 	$(TEST_TARGET)
 # 	@echo "Generating coverage report..."
-# 	@gcov -o $(TEST_OBJ_DIR) $(TEST_SRC_FILES)
-# 	@lcov --capture --directory . --output-file $(COV_DIR)/coverage.info
-# 	@genhtml $(COV_DIR)/coverage.info --output-directory $(COV_DIR)
+# 	gcov -o $(TEST_OBJ_DIR) $(TEST_SRC_FILES)
+# 	lcov --capture --directory . --output-file $(COV_DIR)/coverage.info
+# 	genhtml $(COV_DIR)/coverage.info --output-directory $(COV_DIR)
 # 	@echo "Coverage report generated in $(COV_DIR)"
 
 # Static analysis with clang-tidy
 # .PHONY: analyze
 # analyze:
 # 	@echo "Running static analysis..."
-# 	@-clang-tidy $(SRC_FILES) $(HEADERS) -- $(CFLAGS) $(INCLUDES)
+# 	-clang-tidy $(SRC_FILES) $(HEADERS) -- $(CFLAGS) $(INCLUDES)
 
 # Sanitizer builds
 # .PHONY: asan
@@ -175,122 +299,18 @@ test: directories $(TEST_TARGET)
 # 	@echo "Thread Sanitizer build complete"
 
 # Documentation target
-.PHONY: docs
-docs:
-	@echo "Generating documentation..."
-	@mkdir -p $(DOC_DIR)
-	@-doxygen Doxyfile
-	@echo "Generating PDF..."
-	@$(MAKE) -C $(DOC_DIR)/latex pdf
-	@echo "PDF documentation generated in $(DOC_DIR)"
+# .PHONY: docs
+# docs:
+# 	@echo "Generating documentation..."
+# 	mkdir -p $(DOC_DIR)
+# 	-doxygen Doxyfile
+# 	@echo "Generating PDF..."
+# 	$(MAKE) -C $(DOC_DIR)/latex pdf
+# 	@echo "PDF documentation generated in $(DOC_DIR)"
 
 # Install target
-.PHONY: install
-install: prod
-	@echo "Installing to /usr/local/bin/$(PROJECT)"
-	@install -d /usr/local/bin
-	@install -m 755 $(TARGET) /usr/local/bin/$(PROJECT)
-
-# Clean build artifacts
-.PHONY: clean
-clean:
-	@echo "Cleaning build artifacts"
-	@rm -rf $(BUILD_DIR) $(BIN_DIR)
-	@echo "Clean complete"
-
-# Clean all artifacts including docs
-.PHONY: distclean
-distclean: clean
-	@echo "Cleaning documentation"
-	@rm -rf $(DOC_DIR)
-	@echo "All artifacts cleaned"
-
-# Rebuild everything
-.PHONY: rebuild
-rebuild: clean all
-
-# Run the application
-.PHONY: run
-run: all
-	@echo "Running $(PROJECT)..."
-	@$(TARGET)
-
-# Print project information
-.PHONY: info
-info:
-	@echo "Project: $(PROJECT)"
-	@echo "Version: $(VERSION)"
-	@echo "Source files: $(notdir $(SRC_FILES))"
-	@echo "Test files: $(notdir $(TEST_SRC_FILES))"
-	@echo "Include files: $(notdir $(HEADERS))"
-	@echo "Compiler: $(CC)"
-	@echo "Compiler flags: $(CFLAGS)"
-	@echo "Linker flags: $(LDFLAGS)"
-	@echo "Libraries: $(LDLIBS)"
-
-# Check for compiler and tool availability
-.PHONY: check-env
-check-env:
-	@echo "Checking build environment..."
-	@which $(CC) >/dev/null || (echo "ERROR: $(CC) not found"; exit 1)
-	@echo "$(CC) found: $$(which $(CC))"
-	@echo "$(CC) version: $$($(CC) --version | head -n1)"
-	@which make >/dev/null || (echo "ERROR: make not found"; exit 1)
-	@echo "make found: $$(which make)"
-	@echo "make version: $$(make --version | head -n1)"
-	@which doxygen >/dev/null || (echo "ERROR: doxygen not found"; exit 1)
-	@echo "doxygen found: $$(which doxygen)"
-	@echo "doxygen version: $$(doxygen --version)"
-	@which pdflatex >/dev/null || (echo "WARNING: pdflatex not found - PDF documentation will not be generated"; exit 1)
-	@echo "pdflatex found: $$(which pdflatex)"
-	@echo "pdflatex version: $$(pdflatex --version | head -n1)"
-	@echo "Environment check complete"
-
-# Help target
-.PHONY: help
-help:
-	@echo "Makefile for $(PROJECT) (v$(VERSION))"
-	@echo ""
-	@echo "Basic Targets:"
-	@echo "  all          - Build the project with debug flags (default)"
-	@echo "  debug        - Build with debug info and no optimization"
-	@echo "  prod         - Build with optimizations for production"
-	@echo "  release      - Create a versioned release build"
-	@echo "  test         - Build and run tests"
-	@echo "  clean        - Remove build artifacts"
-	@echo "  distclean    - Remove all generated files including docs"
-	@echo "  rebuild      - Clean and rebuild"
-	@echo "  run          - Build and run the application"
-	@echo ""
-	@echo "Advanced Targets:"
-	@echo "  # coverage     - Run tests with coverage reporting (currently disabled)"
-	@echo "  # analyze      - Run static code analysis (currently disabled)"
-	@echo "  # asan         - Build with Address Sanitizer"
-	@echo "  # tsan         - Build with Thread Sanitizer"
-	@echo "  docs         - Generate documentation"
-	@echo "  install      - Install the application to /usr/local/bin"
-	@echo "  check-env    - Check the build environment"
-	@echo "  info         - Display project information"
-	@echo ""
-	@echo "Use 'make V=1' for verbose output"
-
-# Support for verbose mode
-ifneq ($(V),1)
-.SILENT:
-endif
-
-# Print variables target (for debugging)
-.PHONY: print
-print:
-	$(info $$PROJECT is [${PROJECT}])
-	$(info $$VERSION is [${VERSION}])
-	$(info $$SRC_FILES is [${SRC_FILES}])
-	$(info $$OBJ_FILES is [${OBJ_FILES}])
-	$(info $$TEST_SRC_FILES is [${TEST_SRC_FILES}])
-	$(info $$TEST_OBJ_FILES is [${TEST_OBJ_FILES}])
-	$(info $$COMMON_OBJ_FILES is [${COMMON_OBJ_FILES}])
-	$(info $$CFLAGS is [${CFLAGS}])
-	$(info $$LDFLAGS is [${LDFLAGS}])
-	$(info $$INCLUDES is [${INCLUDES}])
-	$(info $$TARGET is [${TARGET}])
-	$(info $$TEST_TARGET is [${TEST_TARGET}])
+# .PHONY: install
+# install: prod
+# 	@echo "Installing to /usr/local/bin/$(PROJECT)"
+# 	install -d /usr/local/bin
+# 	install -m 755 $(TARGET) /usr/local/bin/$(PROJECT)

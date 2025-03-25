@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "table_formatter.h"
 
 /**
@@ -34,17 +35,25 @@ static int calculate_numeric_width(int value, OutputFormat format)
 {
     int width = 0;
 
+    /* Handle zero case first */
+    if (value == 0)
+    {
+        switch (format)
+        {
+            case FORMAT_HEX:
+                return 3;  /* "0x0" */
+            case FORMAT_OCTAL:
+                return 2;  /* "00" */
+            default:
+                return 1;  /* "0" */
+        }
+    }
+
     /* Account for sign only in decimal format */
     if ((format == FORMAT_DECIMAL) && (value < 0))
     {
         width = 1; /* For minus sign */
         value = abs(value);
-    }
-
-    /* Handle zero case */
-    if (value == 0)
-    {
-        return width + 1;
     }
 
     /* Count digits based on the format */
@@ -59,7 +68,7 @@ static int calculate_numeric_width(int value, OutputFormat format)
             break;
 
         case FORMAT_HEX:
-            width = 2; /* 0x prefix */
+            width = 2; /* "0x" prefix */
             while (value > 0)
             {
                 width++;
@@ -68,7 +77,7 @@ static int calculate_numeric_width(int value, OutputFormat format)
             break;
 
         case FORMAT_OCTAL:
-            width = 2; /* 0 prefix */
+            width = 1; /* "0" prefix */
             while (value > 0)
             {
                 width++;
@@ -91,20 +100,23 @@ static void print_cell(CellValue value, int width, OutputFormat format)
 {
     if (value.is_numeric)
     {
+        char buffer[32]; // Buffer large enough for any integer representation
+
         switch (format)
         {
             case FORMAT_DECIMAL:
-                printf("%*d", width, value.num_value);
+                sprintf(buffer, "%d", value.num_value);
+                printf("%*s", width, buffer);
                 break;
 
             case FORMAT_HEX:
-                printf("%*s", width, "");
-                printf("0x%x", value.num_value);
+                sprintf(buffer, "0x%x", value.num_value);
+                printf("%*s", width, buffer);
                 break;
 
             case FORMAT_OCTAL:
-                printf("%*s", width, "");
-                printf("0%o", value.num_value);
+                sprintf(buffer, "0%o", value.num_value);
+                printf("%*s", width, buffer);
                 break;
         }
     }
@@ -129,9 +141,6 @@ void print_table(int min_value, int max_value, TableOperation operation,
     int row;
     int column;
     int max_width;
-    int width;
-    /* Calculate the number of rows and columns in the table */
-    /* (max_value - min_value + 1) represents the table size */
 
     printf("\n%s", title);
 
@@ -148,55 +157,34 @@ void print_table(int min_value, int max_value, TableOperation operation,
         printf("\n");
     }
 
-    /* Calculate maximum width needed for cell values */
-    max_width = MIN_CELL_WIDTH;
+    /* Calculate maximum width needed based on largest possible value */
+    int largest_possible = max_value * max_value; // Largest value from multiplication
 
-    for (row = min_value; row <= max_value; row++)
-    {
-        for (column = min_value; column <= max_value; column++)
-        {
-            CellValue value;
-            operation(row, column, &value);
-
-            if (value.is_numeric)
-            {
-                width = calculate_numeric_width(value.num_value, format);
-            }
-            else
-            {
-                width = (int)strlen(value.str_value);
-            }
-
-            if (width > max_width)
-            {
-                max_width = width;
-            }
-        }
+    // For extra safety in case of larger operations (like power)
+    if (strcmp(title, POWER_TABLE_TITLE) == 0 && max_value > 0) {
+        // For powers, the largest value could be max_value^max_value
+        // But that would be huge, so let's use a reasonable estimate
+        int max_exponent = (max_value < 8) ? max_value : 8; // Choose smaller of max_value or 8
+        largest_possible = (int)pow(max_value, max_exponent);
     }
 
-    /* Add padding to the max_width */
+    max_width = calculate_numeric_width(largest_possible, format);
+
+    /* Ensure we meet minimum width requirement */
+    if (max_width < MIN_CELL_WIDTH)
+        max_width = MIN_CELL_WIDTH;
+
+    /* Add padding */
     max_width += CELL_PADDING;
 
     /* Print header row */
     printf("%*s |", max_width, "");
     for (column = min_value; column <= max_value; column++)
     {
-        switch (format)
-        {
-            case FORMAT_DECIMAL:
-                printf("%*d", max_width, column);
-                break;
-
-            case FORMAT_HEX:
-                printf("%*s", max_width, "");
-                printf("0x%x", column);
-                break;
-
-            case FORMAT_OCTAL:
-                printf("%*s", max_width, "");
-                printf("0%o", column);
-                break;
-        }
+        CellValue header;
+        header.is_numeric = true;
+        header.num_value = column;
+        print_cell(header, max_width, format);
     }
     printf("\n");
 
@@ -220,22 +208,11 @@ void print_table(int min_value, int max_value, TableOperation operation,
     for (row = min_value; row <= max_value; row++)
     {
         /* Print row label */
-        switch (format)
-        {
-            case FORMAT_DECIMAL:
-                printf("%*d |", max_width, row);
-                break;
-
-            case FORMAT_HEX:
-                printf("%*s", max_width - 2, "");
-                printf("0x%x |", row);
-                break;
-
-            case FORMAT_OCTAL:
-                printf("%*s", max_width - 1, "");
-                printf("0%o |", row);
-                break;
-        }
+        CellValue label;
+        label.is_numeric = true;
+        label.num_value = row;
+        print_cell(label, max_width, format);
+        printf(" |");
 
         /* Print row data */
         for (column = min_value; column <= max_value; column++)
