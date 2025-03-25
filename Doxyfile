@@ -1,5 +1,5 @@
-# Doxyfile for kmc-calc
-PROJECT_NAME           = "kmc-calc"
+# Doxyfile for timestable
+PROJECT_NAME           = "timestable"
 PROJECT_NUMBER         = "1.0.0"
 PROJECT_BRIEF          = "A C99 project following BARR-C style guidelines"
 OUTPUT_DIRECTORY       = docs

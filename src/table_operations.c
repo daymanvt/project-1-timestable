@@ -16,7 +16,7 @@
 /**
  * @brief String constant for division by zero
  */
-#define NA_STRING "n/a"
+#define UNDEF_STRING "UDF"
 
 /**
  * @brief Multiplication operation (row × column)
@@ -46,7 +46,7 @@ void divide(int row, int column, CellValue *result)
     if (column == 0)
     {
         result->is_numeric = false;
-        strcpy(result->str_value, NA_STRING);
+        strcpy(result->str_value, UNDEF_STRING);
     }
     else
     {

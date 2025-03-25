@@ -11,68 +11,9 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
-#include <unistd.h>
-#include <getopt.h>
-#include <errno.h>
-#include <limits.h>
 #include "table_operations.h"
 #include "table_formatter.h"
-
-/** Maximum allowed table size */
-#define MAX_TABLE_SIZE 100
-
-/**
- * @brief Print usage information for the program
- *
- * @param program_name Name of the executable
- */
-static void print_usage(const char *program_name)
-{
-    printf("Usage: %s [options]\n", program_name);
-    printf("Options:\n");
-    printf("  -x           Display output in hexadecimal format\n");
-    printf("  -o           Display output in octal format\n");
-    printf("  -m <min>     Minimum value (default: 1, cannot be less than 0)\n");
-    printf("  -M <max>     Maximum value (default: 10, cannot exceed %d)\n", MAX_TABLE_SIZE);
-    printf("  -h           Display this help message\n");
-}
-
-/**
- * @brief Parse a string as a long integer with error checking
- *
- * @param str String to parse
- * @param result Pointer to store the result
- * @param min_val Minimum allowed value
- * @param max_val Maximum allowed value
- * @return bool true if parsing was successful, false otherwise
- */
-static bool parse_integer(const char *str, int *result, int min_val, int max_val)
-{
-    char *endptr;
-    long value;
-
-    /* Reset errno before the call */
-    errno = 0;
-
-    /* Attempt to convert string to long integer */
-    value = strtol(str, &endptr, 10);
-
-    /* Check for conversion errors */
-    if ((errno == ERANGE && (value == LONG_MAX || value == LONG_MIN)) ||
-        (errno != 0 && value == 0) ||
-        (endptr == str) ||
-        (*endptr != '\0') ||
-        (value < min_val) ||
-        (value > max_val))
-    {
-        return false;
-    }
-
-    *result = (int)value;
-    return true;
-}
+#include "cli.h"
 
 /**
  * @brief Main program entry point
@@ -83,73 +24,47 @@ static bool parse_integer(const char *str, int *result, int min_val, int max_val
  */
 int main(int argc, char *argv[])
 {
-    int min_value = 1;
-    int max_value = 10;
-    OutputFormat format = FORMAT_DECIMAL;
-    int option;
-    int temp_value;
+    ProgramOptions options;
+    CliErrorCode error_code;
 
-    /* Parse command line options */
-    while ((option = getopt(argc, argv, "xom:M:h")) != -1)
+    /* Initialize options with default values */
+    cli_init_options(&options);
+
+    /* Parse command line arguments */
+    error_code = cli_parse_args(argc, argv, &options);
+
+    /* Check for errors or help request */
+    if (error_code != CLI_SUCCESS)
     {
-        switch (option)
-        {
-            case 'x':
-                format = FORMAT_HEX;
-                break;
-
-            case 'o':
-                format = FORMAT_OCTAL;
-                break;
-
-            case 'm':
-                if (!parse_integer(optarg, &temp_value, 0, INT_MAX)) //ignore
-                {
-                    fprintf(stderr, "Error: Invalid minimum value\n");
-                    goto error_exit;
-                }
-                min_value = temp_value;
-                break;
-
-            case 'M':
-                if (!parse_integer(optarg, &temp_value, 0, MAX_TABLE_SIZE))
-                {
-                    fprintf(stderr, "Error: Invalid maximum value (must be between 0 and %d)\n",
-                            MAX_TABLE_SIZE);
-                    goto error_exit;
-                }
-                max_value = temp_value;
-                break;
-
-            case 'h':
-                print_usage(argv[0]);
-                return EXIT_SUCCESS;
-
-            default:
-                print_usage(argv[0]);
-                goto error_exit;
-        }
+        fprintf(stderr, "Error: %s\n", cli_get_error_message(error_code));
+        cli_print_usage(argv[0]);
+        return EXIT_FAILURE;
     }
 
-    /* Validate min/max values */
-    if (min_value > max_value)
+    if (options.show_help)
     {
-        fprintf(stderr, "Error: Minimum value cannot be greater than maximum value\n");
-        goto error_exit;
+        cli_print_usage(argv[0]);
+        return EXIT_SUCCESS;
     }
 
-    /* Print multiplication table */
-    print_table(min_value, max_value, multiply, MULT_TABLE_TITLE, format);
+    /* Display requested tables */
+    if (options.tables & TABLE_MULTIPLICATION)
+    {
+        print_table(options.min_value, options.max_value, multiply,
+                   MULT_TABLE_TITLE, options.format);
+    }
 
-    /* Print division table */
-    // print_table(min_value, max_value, divide, DIV_TABLE_TITLE, format);
+    if (options.tables & TABLE_DIVISION)
+    {
+        print_table(options.min_value, options.max_value, divide,
+                   DIV_TABLE_TITLE, options.format);
+    }
 
-    /* Print power table */
-    // print_table(min_value, max_value, power, POWER_TABLE_TITLE, format);
+    if (options.tables & TABLE_POWER)
+    {
+        print_table(options.min_value, options.max_value, power,
+                   POWER_TABLE_TITLE, options.format);
+    }
 
     return EXIT_SUCCESS;
-
-error_exit:
-    /* Clean up any resources if necessary */
-    return EXIT_FAILURE;
 }

@@ -28,7 +28,7 @@
  * @brief Calculate the required cell width for a value based on format
  *
  * @param value The numeric value to calculate width for
- * @param format The output format (decimal, hex)
+ * @param format The output format (decimal, hex, octal)
  * @return int The required width in characters
  */
 static int calculate_numeric_width(int value, OutputFormat format)
@@ -42,6 +42,8 @@ static int calculate_numeric_width(int value, OutputFormat format)
         {
             case FORMAT_HEX:
                 return 3;  /* "0x0" */
+            case FORMAT_OCTAL:
+                return 2;  /* "00" */
             default:
                 return 1;  /* "0" */
         }
@@ -58,7 +60,6 @@ static int calculate_numeric_width(int value, OutputFormat format)
     switch (format)
     {
         case FORMAT_DECIMAL:
-            width = 0;
             while (value > 0)
             {
                 width++;
@@ -72,6 +73,15 @@ static int calculate_numeric_width(int value, OutputFormat format)
             {
                 width++;
                 value /= 16;
+            }
+            break;
+
+        case FORMAT_OCTAL:
+            width = 1; /* "0" prefix */
+            while (value > 0)
+            {
+                width++;
+                value /= 8;
             }
             break;
     }
@@ -90,7 +100,7 @@ static void print_cell(CellValue value, int width, OutputFormat format)
 {
     if (value.is_numeric)
     {
-        char buffer[32]; /* Buffer large enough for any integer representation */
+        char buffer[32]; // Buffer large enough for any integer representation
 
         switch (format)
         {
@@ -101,6 +111,11 @@ static void print_cell(CellValue value, int width, OutputFormat format)
 
             case FORMAT_HEX:
                 sprintf(buffer, "0x%x", value.num_value);
+                printf("%*s", width, buffer);
+                break;
+
+            case FORMAT_OCTAL:
+                sprintf(buffer, "0%o", value.num_value);
                 printf("%*s", width, buffer);
                 break;
         }
@@ -118,7 +133,7 @@ static void print_cell(CellValue value, int width, OutputFormat format)
  * @param max_value Maximum value for rows and columns
  * @param operation Function pointer to the operation to perform
  * @param title Title to display for the table
- * @param format Output format to use (decimal, hex)
+ * @param format Output format to use (decimal, hex, octal)
  */
 void print_table(int min_value, int max_value, TableOperation operation,
                  const char *title, OutputFormat format)
@@ -133,19 +148,23 @@ void print_table(int min_value, int max_value, TableOperation operation,
     {
         printf(" [Hexadecimal Format]\n");
     }
+    else if (format == FORMAT_OCTAL)
+    {
+        printf(" [Octal Format]\n");
+    }
     else
     {
         printf("\n");
     }
 
     /* Calculate maximum width needed based on largest possible value */
-    int largest_possible = max_value * max_value; /* Largest value from multiplication */
+    int largest_possible = max_value * max_value; // Largest value from multiplication
 
-    /* For extra safety in case of larger operations (like power) */
+    // For extra safety in case of larger operations (like power)
     if (strcmp(title, POWER_TABLE_TITLE) == 0 && max_value > 0) {
-        /* For powers, the largest value could be max_value^max_value
-           But that would be huge, so let's use a reasonable estimate */
-        int max_exponent = (max_value < 8) ? max_value : 8; /* Choose smaller of max_value or 8 */
+        // For powers, the largest value could be max_value^max_value
+        // But that would be huge, so let's use a reasonable estimate
+        int max_exponent = (max_value < 8) ? max_value : 8; // Choose smaller of max_value or 8
         largest_possible = (int)pow(max_value, max_exponent);
     }
 

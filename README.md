@@ -1,4 +1,4 @@
-# kmc-calc
+# timestable
 
 ## Overview
 A C99 project following BARR-C style guidelines.
