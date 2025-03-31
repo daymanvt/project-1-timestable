@@ -4,14 +4,11 @@
  *
  * Contains implementations of the various operations that can be
  * performed on table cells (multiplication, division, power).
- *
- * @author Your Name
- * @date March 24, 2025
  */
 
 #include <string.h>
 #include <math.h>
-#include "table_operations.h"
+#include "timestable_operations.h"
 
 /**
  * @brief String constant for division by zero
@@ -25,7 +22,7 @@
  * @param column Column value
  * @param result Pointer to store the result
  */
-void multiply(int row, int column, CellValue *result)
+void multiply(int row, int column, cell_value_t *result)
 {
     result->is_numeric = true;
     result->num_value = row * column;
@@ -41,7 +38,7 @@ void multiply(int row, int column, CellValue *result)
  * @param column Column value (denominator)
  * @param result Pointer to store the result
  */
-void divide(int row, int column, CellValue *result)
+void divide(int row, int column, cell_value_t *result)
 {
     if (column == 0)
     {
@@ -64,7 +61,7 @@ void divide(int row, int column, CellValue *result)
  * @param column Column value (exponent)
  * @param result Pointer to store the result
  */
-void power(int row, int column, CellValue *result)
+void power(int row, int column, cell_value_t *result)
 {
     result->is_numeric = true;
     result->num_value = (int)pow(row, column);

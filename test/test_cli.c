@@ -13,7 +13,7 @@
 #include <string.h>
 #include "test_framework.h"
 #include "test_cli.h"
-#include "cli.h"
+#include "timestable_cli.h"
 
 /**
  * @brief Test initialization of program options
@@ -23,7 +23,7 @@
 static int test_cli_init_options(void)
 {
     int failures = 0;
-    ProgramOptions options;
+    program_options_t options;
 
     /* Initialize options and check default values */
     cli_init_options(&options);

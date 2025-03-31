@@ -16,8 +16,8 @@
 #include "test_framework.h"
 #include "test_helpers.h"
 #include "test_table_formatter.h"
-#include "table_formatter.h"
-#include "table_operations.h"
+#include "timestable_formatter.h"
+#include "timestable_operations.h"
 
 /* Buffer size for capturing stdout */
 #define BUFFER_SIZE 4096
@@ -31,7 +31,7 @@
  * @param column Column value
  * @param result Pointer to store the result
  */
-static void mock_add(int row, int column, CellValue *result)
+static void mock_add(int row, int column, cell_value_t *result)
 {
     result->is_numeric = true;
     result->num_value = row + column;
@@ -47,7 +47,7 @@ static void mock_add(int row, int column, CellValue *result)
  * @param column Column value
  * @param result Pointer to store the result
  */
-static void mock_string_result(int row, int column, CellValue *result)
+static void mock_string_result(int row, int column, cell_value_t *result)
 {
     if (row > column) {
         result->is_numeric = false;

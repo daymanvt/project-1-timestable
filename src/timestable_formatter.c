@@ -3,76 +3,45 @@
  * @brief Implementation of table formatting functions
  *
  * Functions for printing tables with various formatting options.
- *
- * @author Your Name
- * @date March 24, 2025
  */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-#include "table_formatter.h"
+#include "timestable_formatter.h"
 
-/**
- * @brief Minimum cell width for output
- */
+#define HEX_ZERO_WIDTH 3
+#define DECIMAL_ZERO_WIDTH 1
 #define MIN_CELL_WIDTH 4
-
-/**
- * @brief Cell padding for visual spacing
- */
 #define CELL_PADDING 1
 
 /**
  * @brief Calculate the required cell width for a value based on format
  *
- * @param value The numeric value to calculate width for
- * @param format The output format (decimal, hex)
- * @return int The required width in characters
+ * @param value   The maximum numeric value to calculate width for
+ * @param format  The output format (decimal, hex)
+ * @return int    The required width in characters
  */
-static int calculate_numeric_width(int value, OutputFormat format)
+static
+int calculate_numeric_width(int value, output_format_t format)
 {
     int width = 0;
 
-    /* Handle zero case first */
-    if (value == 0)
-    {
-        switch (format)
-        {
-            case FORMAT_HEX:
-                return 3;  /* "0x0" */
-            default:
-                return 1;  /* "0" */
-        }
-    }
-
-    /* Account for sign only in decimal format */
-    if ((format == FORMAT_DECIMAL) && (value < 0))
-    {
-        width = 1; /* For minus sign */
-        value = abs(value);
-    }
-
-    /* Count digits based on the format */
-    switch (format)
-    {
+    switch (format) {
         case FORMAT_DECIMAL:
-            width = 0;
-            while (value > 0)
-            {
+            do {
                 width++;
                 value /= 10;
-            }
+            } while (value > 0 || 0 == width); //Handle zero case within the loop.
             break;
 
         case FORMAT_HEX:
-            width = 2; /* "0x" prefix */
-            while (value > 0)
-            {
+            width = 2; // "0x" prefix
+            do {
                 width++;
                 value /= 16;
-            }
+            } while (value > 0 || 2 == width); //Handle zero case within the loop.
             break;
     }
 
@@ -86,7 +55,8 @@ static int calculate_numeric_width(int value, OutputFormat format)
  * @param width Width for formatting
  * @param format Output format to use
  */
-static void print_cell(CellValue value, int width, OutputFormat format)
+static void
+print_cell(cell_value_t value, int width, output_format_t format)
 {
     if (value.is_numeric)
     {
@@ -97,12 +67,12 @@ static void print_cell(CellValue value, int width, OutputFormat format)
             case FORMAT_DECIMAL:
                 sprintf(buffer, "%d", value.num_value);
                 printf("%*s", width, buffer);
-                break;
+            break;
 
             case FORMAT_HEX:
                 sprintf(buffer, "0x%x", value.num_value);
                 printf("%*s", width, buffer);
-                break;
+            break;
         }
     }
     else
@@ -120,29 +90,25 @@ static void print_cell(CellValue value, int width, OutputFormat format)
  * @param title Title to display for the table
  * @param format Output format to use (decimal, hex)
  */
-void print_table(int min_value, int max_value, TableOperation operation,
-                 const char *title, OutputFormat format)
+void
+print_table(int min_value,
+            int max_value,
+            TableOperation operation,
+            const char *title,
+            output_format_t format)
 {
     int row;
     int column;
     int max_width;
 
-    printf("\n%s", title);
-
-    if (format == FORMAT_HEX)
-    {
-        printf(" [Hexadecimal Format]\n");
-    }
-    else
-    {
-        printf("\n");
-    }
+    printf("\n%s\n", title);
 
     /* Calculate maximum width needed based on largest possible value */
     int largest_possible = max_value * max_value; /* Largest value from multiplication */
 
     /* For extra safety in case of larger operations (like power) */
-    if (strcmp(title, POWER_TABLE_TITLE) == 0 && max_value > 0) {
+    if (strcmp(title, POWER_TABLE_TITLE) == 0 && max_value > 0)
+    {
         /* For powers, the largest value could be max_value^max_value
            But that would be huge, so let's use a reasonable estimate */
         int max_exponent = (max_value < 8) ? max_value : 8; /* Choose smaller of max_value or 8 */
@@ -162,7 +128,7 @@ void print_table(int min_value, int max_value, TableOperation operation,
     printf("%*s |", max_width, "");
     for (column = min_value; column <= max_value; column++)
     {
-        CellValue header;
+        cell_value_t header;
         header.is_numeric = true;
         header.num_value = column;
         print_cell(header, max_width, format);
@@ -189,7 +155,7 @@ void print_table(int min_value, int max_value, TableOperation operation,
     for (row = min_value; row <= max_value; row++)
     {
         /* Print row label */
-        CellValue label;
+        cell_value_t label;
         label.is_numeric = true;
         label.num_value = row;
         print_cell(label, max_width, format);
@@ -198,7 +164,7 @@ void print_table(int min_value, int max_value, TableOperation operation,
         /* Print row data */
         for (column = min_value; column <= max_value; column++)
         {
-            CellValue value;
+            cell_value_t value;
             operation(row, column, &value);
             print_cell(value, max_width, format);
         }

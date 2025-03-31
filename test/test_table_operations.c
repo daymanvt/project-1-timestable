@@ -13,7 +13,7 @@
 #include <math.h>
 #include "test_framework.h"
 #include "test_table_operations.h"
-#include "table_operations.h"
+#include "timestable_operations.h"
 
 /**
  * @brief Test the multiply operation
@@ -26,7 +26,7 @@
 static int test_multiply(void)
 {
     int failures = 0;
-    CellValue result;
+    cell_value_t result;
 
     /* Test basic multiplication with positive numbers */
     multiply(5, 7, &result);
@@ -61,7 +61,7 @@ static int test_multiply(void)
 static int test_divide(void)
 {
     int failures = 0;
-    CellValue result;
+    cell_value_t result;
 
     /* Test basic division */
     divide(10, 2, &result);
@@ -101,7 +101,7 @@ static int test_divide(void)
 static int test_power(void)
 {
     int failures = 0;
-    CellValue result;
+    cell_value_t result;
 
     /* Test basic power operation */
     power(2, 3, &result);
