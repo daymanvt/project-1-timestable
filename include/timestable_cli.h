@@ -63,18 +63,9 @@ typedef struct
  * @param argc      Argument count
  * @param argv      Argument values
  * @param options   Pointer to options structure to populate
- * @return          cli_error_code_t indicating success or specific error
+ * @return          cli_error_t structure with error code and message
  */
-// cli_error_code_t cli_parse_args(int argc, char *argv[], program_options_t *options);  OLD
 cli_error_t cli_parse_args(int argc, char *argv[], program_options_t *options);
-
-/**
-//  * @brief Get error message for a specific CLI error code
-//  *
-//  * @param error_code    The error code to get message for
-//  * @return              const char* The corresponding error message
-//  */
-// const char *cli_get_error_message(cli_error_code_t error_code);
 
 /**
  * @brief Print usage information for the program

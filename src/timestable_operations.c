@@ -13,7 +13,7 @@
 /**
  * @brief String constant for division by zero
  */
-#define UNDEF_STRING "UND"
+#define UNDEF_STRING "UDF"
 
 /**
  * @brief Multiplication operation (row × column)

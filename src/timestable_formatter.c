@@ -56,28 +56,28 @@ int calculate_numeric_width(int value, output_format_t format)
  * @param format Output format to use
  */
 static void
-print_cell(cell_value_t value, int width, output_format_t format)
+print_cell(cell_value_t cell_value, int width, output_format_t format)
 {
-    if (value.is_numeric)
+    if (cell_value.is_numeric)
     {
         char buffer[32]; /* Buffer large enough for any integer representation */
 
         switch (format)
         {
             case FORMAT_DECIMAL:
-                sprintf(buffer, "%d", value.num_value);
+                snprintf(buffer, sizeof(buffer), "%d", cell_value.num_value);
                 printf("%*s", width, buffer);
             break;
 
             case FORMAT_HEX:
-                sprintf(buffer, "0x%x", value.num_value);
+                snprintf(buffer, sizeof(buffer), "0x%x", cell_value.num_value);
                 printf("%*s", width, buffer);
             break;
         }
     }
     else
     {
-        printf("%*s", width, value.str_value);
+        printf("%*s", width, cell_value.str_value);
     }
 }
 
@@ -107,7 +107,7 @@ print_table(int min_value,
     int largest_possible = max_value * max_value; /* Largest value from multiplication */
 
     /* For extra safety in case of larger operations (like power) */
-    if (strcmp(title, POWER_TABLE_TITLE) == 0 && max_value > 0)
+    if (0 == strcmp(title, POWER_TABLE_TITLE) && max_value > 0)
     {
         /* For powers, the largest value could be max_value^max_value
            But that would be huge, so let's use a reasonable estimate */
