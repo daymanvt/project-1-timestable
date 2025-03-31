@@ -39,9 +39,10 @@ typedef enum
 /**
  * @brief Structure to hold error information
  */
-typedef struct {
+typedef struct
+{
     cli_error_code_t code;           /**< The error code */
-    const char *message;         /**< The corresponding error message */
+    const char *message;             /**< The corresponding error message */
 } cli_error_t;
 
 /**
@@ -51,8 +52,8 @@ typedef struct
 {
     int min_value;                   /**< Minimum value for rows and columns */
     int max_value;                   /**< Maximum value for rows and columns */
-    output_format_t format;             /**< Output format (decimal, hex) */
-    table_flag_t tables;                /**< Tables to display */
+    output_format_t format;          /**< Output format (decimal, hex) */
+    table_flag_t tables;             /**< Tables to display */
     bool show_help;                  /**< Flag to show help message */
 } program_options_t;
 

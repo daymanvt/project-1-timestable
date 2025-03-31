@@ -15,8 +15,8 @@
  */
 typedef enum
 {
-    FORMAT_DECIMAL = 0,    /**< Decimal (base 10) output */
-    FORMAT_HEX         /**< Hexadecimal (base 16) output */
+    FORMAT_DECIMAL = 0,     /**< Decimal (base 10) output */
+    FORMAT_HEX              /**< Hexadecimal (base 16) output */
 } output_format_t;
 
 /**
@@ -28,7 +28,10 @@ typedef enum
  * @param title      Title to display for the table
  * @param format     Output format to use (decimal, hex)
  */
-void print_table(int min_value, int max_value, TableOperation operation,
-                 const char *title, output_format_t format);
+void print_table(int min_value,
+                 int max_value,
+                 TableOperation operation,
+                 const char *title,
+                 output_format_t format);
 
 #endif /* TIMESTABLE_FORMATTER_H */

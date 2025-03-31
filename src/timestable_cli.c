@@ -5,17 +5,17 @@
  * Functions for parsing and processing command line arguments.
  */
 
-#include <stdio.h>                  // printf
+#include <stdio.h>                  // printf()
 #include <stdlib.h>                 // EXIT_FAILURE, EXIT_SUCCESS
-#include <string.h>                 // strcmp
+#include <string.h>                 // strcmp()
 #include <errno.h>                  // errno
 #include <limits.h>                 // INT_MAX
-#include <unistd.h>                 // getopt
-#include <getopt.h>                 // getopt
+#include <unistd.h>                 // getopt()
+#include <getopt.h>                 // getopt()
 #include <stdbool.h>
 
 #include "colors.h"                 // RED, GRN, YLW, BLU, MAG, CYN, CLR
-#include "timestable_cli.h"
+#include "timestable_cli.h"         // cli_error_t, program_options_t, cli_parse_args(), cli_print_usage()
 
 #define MAX_TABLE_SIZE 100
 
@@ -42,9 +42,10 @@ static const size_t CLI_ERRORS_COUNT = sizeof(CLI_ERRORS) / sizeof(CLI_ERRORS[0]
 static
 bool parse_integer(const char *str, int *result, int min, int max)
 {
-    char *endptr    = NULL;
-    long value      = 0;
-    errno           = 0;
+    /* Initialize variables */
+    char *endptr = NULL;
+    long value   = 0;
+    errno        = 0;
 
     /* Attempt to convert string to long integer */
     value = strtol(str, &endptr, 10);

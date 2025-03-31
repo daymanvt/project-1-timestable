@@ -13,7 +13,7 @@
 /**
  * @brief String constant for division by zero
  */
-#define UNDEF_STRING "UDF"
+#define UNDEF_STRING "UND"
 
 /**
  * @brief Multiplication operation (row × column)
@@ -38,19 +38,19 @@ void multiply(int row, int column, cell_value_t *result)
  * @param column Column value (denominator)
  * @param result Pointer to store the result
  */
-void divide(int row, int column, cell_value_t *result)
+void
+divide(int row, int column, cell_value_t *result)
 {
-    if (column == 0)
+    if (0 == column)
     {
         result->is_numeric = false;
         strcpy(result->str_value, UNDEF_STRING);
     }
     else
     {
-        result->is_numeric = true;
-        /* Integer division used for simplicity */
-        result->num_value = row / column;
-        result->str_value[0] = '\0';
+        result->is_numeric    = true;
+        result->num_value     = row / column;
+        result->str_value[0]  = '\0';
     }
 }
 
@@ -61,9 +61,10 @@ void divide(int row, int column, cell_value_t *result)
  * @param column Column value (exponent)
  * @param result Pointer to store the result
  */
-void power(int row, int column, cell_value_t *result)
+void
+power(int row, int column, cell_value_t *result)
 {
-    result->is_numeric = true;
-    result->num_value = (int)pow(row, column);
-    result->str_value[0] = '\0';
+    result->is_numeric      = true;
+    result->num_value       = (int)pow(row, column);
+    result->str_value[0]    = '\0';
 }
