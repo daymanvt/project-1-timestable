@@ -55,7 +55,7 @@ bool parse_integer(const char *str, int *result, int min, int max)
     bool other_error_with_zero  = errno != 0 && value == 0;
     bool no_digits_found        = endptr == str;
     bool has_trailing_chars     = *endptr != '\0';
-    bool out_of_range           = value < min || value > max;
+    bool out_of_range           = (value < min) || (value > max);
 
     /* Check for conversion errors */
     if (overflow_or_underflow || other_error_with_zero ||
